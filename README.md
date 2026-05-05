@@ -128,7 +128,24 @@ npm run build
 - **Computation Steps**: Detail perhitungan untuk setiap posisi output
 - **Window Visualization**: Tampilan visual dari kernel yang sedang diproses
 
-## 📊 Contoh Penggunaan
+## � Screenshot & Demo
+
+### Interface Utama
+![Kalkulator Konvolusi 2D - Main Interface](screenshots/01-main-interface.png)
+
+*Layar input matriks utama dan kernel dengan kontrol untuk mengatur dimensi*
+
+### Visualisasi Langkah-Langkah
+![Visualisasi Langkah Konvolusi](screenshots/02-visualization-steps.png)
+
+*Demonstrasi visual sliding window dengan area tumpang tindih (overlap area) dan perhitungan detail per posisi*
+
+### Hasil Perhitungan & Analisis
+![Hasil Konvolusi 2D](screenshots/03-computation-results.png)
+
+*Output matriks hasil konvolusi dengan breakdown perhitungan mathematical untuk setiap posisi (i,j)*
+
+## �📊 Contoh Penggunaan
 
 ### Contoh 1: Konvolusi Dasar 3×3
 
