@@ -131,12 +131,12 @@ npm run build
 ## � Screenshot & Demo
 
 ### Interface Utama
-![Kalkulator Konvolusi 2D - Main Interface](screenshots/01-main-interface.png)
+![Kalkulator Konvolusi 2D - Main Interface](assets/img/input.png)
 
 *Layar input matriks utama dan kernel dengan kontrol untuk mengatur dimensi*
 
 ### Visualisasi Langkah-Langkah
-![Visualisasi Langkah Konvolusi](screenshots/02-visualization-steps.png)
+![Visualisasi Langkah Konvolusi](assets/img/visual.png)
 
 *Demonstrasi visual sliding window dengan area tumpang tindih (overlap area) dan perhitungan detail per posisi*
 
