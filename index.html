@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Konvolusi 2D (Tailwind CSS)</title>
+    
+    <!-- Script Tailwind CSS CDN (Hapus ini jika Anda sudah melakukan build proses via npm/Vite/Laravel Mix) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        /* Animasi kompleks tetap disimpan di CSS murni karena Tailwind memerlukan konfigurasi khusus untuk ini */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulseBorder {
+            0% { box-shadow: inset 0 0 0 2px #3b82f6; background-color: #eff6ff; transform: scale(1); }
+            50% { box-shadow: inset 0 0 0 4px rgba(37, 99, 235, 0.8); background-color: #dbeafe; transform: scale(1.05); z-index: 10; }
+            100% { box-shadow: inset 0 0 0 2px #3b82f6; background-color: #eff6ff; transform: scale(1); }
+        }
+
+        .anim-fade-in { animation: fadeInUp 0.5s ease-out forwards; opacity: 0; }
+        .anim-pulse-border { animation: pulseBorder 2s infinite ease-in-out; position: relative; z-index: 1; font-weight: bold; color: #2563eb; }
+
+        /* Menyembunyikan panah input number bawaan browser */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+
+        /* Kustomisasi Scrollbar agar rapi saat rumus sangat panjang */
+        .custom-scrollbar::-webkit-scrollbar { height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased p-4 md:p-8">
+
+<div class="max-w-5xl mx-auto space-y-6">
+    <!-- Header Card -->
+    <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
+        <h1 class="text-2xl md:text-3xl font-bold text-blue-600 border-b-2 border-slate-100 pb-4 mb-6">
+            Kalkulator Konvolusi 2D
+        </h1>
+
+        <!-- Input Matriks Utama -->
+        <div class="mb-8">
+            <h2 class="text-lg font-semibold mb-3 text-slate-700">1. Matriks Utama (Input)</h2>
+            <div class="flex flex-wrap items-center gap-3 mb-4">
+                <label class="font-medium text-sm text-slate-600">Baris:</label>
+                <input type="number" id="in_rows" class="w-16 px-2 py-1 text-center border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" value="4" min="2" max="8">
+                <label class="font-medium text-sm text-slate-600">Kolom:</label>
+                <input type="number" id="in_cols" class="w-16 px-2 py-1 text-center border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" value="4" min="2" max="8">
+                <button onclick="MatrixUI.buildGrid('input')" class="bg-slate-600 hover:bg-slate-700 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors">
+                    Update Ukuran
+                </button>
+            </div>
+            <!-- Grid Input -->
+            <div id="grid_input" class="inline-grid gap-1 bg-slate-200 p-2 rounded-lg"></div>
+        </div>
+
+        <!-- Input Matriks Kernel -->
+        <div class="mb-8">
+            <h2 class="text-lg font-semibold mb-3 text-slate-700">2. Matriks Kernel (Filter)</h2>
+            <div class="flex flex-wrap items-center gap-3 mb-4">
+                <label class="font-medium text-sm text-slate-600">Baris:</label>
+                <input type="number" id="kr_rows" class="w-16 px-2 py-1 text-center border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" value="3" min="2" max="5">
+                <label class="font-medium text-sm text-slate-600">Kolom:</label>
+                <input type="number" id="kr_cols" class="w-16 px-2 py-1 text-center border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" value="3" min="2" max="5">
+                <button onclick="MatrixUI.buildGrid('kernel')" class="bg-slate-600 hover:bg-slate-700 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors">
+                    Update Ukuran
+                </button>
+            </div>
+            <!-- Grid Kernel -->
+            <div id="grid_kernel" class="inline-grid gap-1 bg-slate-200 p-2 rounded-lg"></div>
+        </div>
+
+        <!-- Tombol Eksekusi -->
+        <button onclick="jalankanKalkulasi2D()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow transition-transform transform hover:-translate-y-0.5">
+            🚀 Hitung Geometri Sliding Window
+        </button>
+    </div>
+
+    <!-- Area Hasil (Disembunyikan di awal) -->
+    <div id="result_section" class="hidden space-y-6">
+        
+        <!-- Matriks Hasil Akhir -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 anim-fade-in" style="animation-delay: 0.1s;">
+            <h2 class="text-xl font-bold text-slate-800 mb-4">✨ Matriks Hasil (Output)</h2>
+            <div id="final_matrix_render" class="inline-grid gap-0.5 bg-slate-700 border-4 border-slate-700 rounded-lg overflow-hidden"></div>
+        </div>
+
+        <!-- Demonstrasi Langkah-langkah -->
+        <div class="bg-transparent">
+            <h2 class="text-xl font-bold text-slate-800 mb-4 px-2">Demonstrasi Visual Langkah-Langkah</h2>
+            <div id="steps_log_container" class="space-y-6"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    class MatrixUI {
+        static MAX_DIM = 8;
+
+        static buildGrid(type) {
+            let rows = parseInt(document.getElementById(type === 'input' ? 'in_rows' : 'kr_rows').value);
+            let cols = parseInt(document.getElementById(type === 'input' ? 'in_cols' : 'kr_cols').value);
+
+            if (rows > this.MAX_DIM || cols > this.MAX_DIM || rows < 1 || cols < 1) return;
+
+            const container = document.getElementById(`grid_${type}`);
+            container.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+            container.innerHTML = ''; 
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    // Class Tailwind untuk setiap sel input
+                    input.className = 'w-12 h-12 sm:w-14 sm:h-14 text-center text-lg font-medium text-slate-800 border border-slate-300 rounded bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all';
+                    input.id = `cell_${type}_${r}_${c}`;
+                    input.value = 0; 
+                    container.appendChild(input);
+                }
+            }
+            
+            // Auto-fill contoh data
+            if(type === 'kernel' && rows === 3 && cols === 3) {
+                setTimeout(() => {
+                    document.getElementById('cell_kernel_0_0').value = -2; document.getElementById('cell_kernel_0_1').value = 3; document.getElementById('cell_kernel_0_2').value = -1;
+                    document.getElementById('cell_kernel_1_0').value = 0;  document.getElementById('cell_kernel_1_1').value = 0; document.getElementById('cell_kernel_1_2').value = 3;
+                    document.getElementById('cell_kernel_2_0').value = 4;  document.getElementById('cell_kernel_2_1').value = 3; document.getElementById('cell_kernel_2_2').value = 5;
+                }, 10);
+            }
+            if(type === 'input' && rows >= 4 && cols >= 4) {
+                 setTimeout(() => {
+                    document.getElementById('cell_input_0_0').value = 2; document.getElementById('cell_input_0_1').value = 3; document.getElementById('cell_input_0_2').value = 4; document.getElementById('cell_input_0_3').value = 0;
+                    document.getElementById('cell_input_1_0').value = 3; document.getElementById('cell_input_1_1').value = 4; document.getElementById('cell_input_1_2').value = 4; document.getElementById('cell_input_1_3').value = 0;
+                    document.getElementById('cell_input_2_0').value = 4; document.getElementById('cell_input_2_1').value = 3; document.getElementById('cell_input_2_2').value = 3; document.getElementById('cell_input_2_3').value = 0;
+                    document.getElementById('cell_input_3_0').value = 5; document.getElementById('cell_input_3_1').value = 0; document.getElementById('cell_input_3_2').value = 5; document.getElementById('cell_input_3_3').value = 0;
+                 }, 10);
+            }
+        }
+
+        static getMatrixValues(type) {
+            let rows = parseInt(document.getElementById(type === 'input' ? 'in_rows' : 'kr_rows').value);
+            let cols = parseInt(document.getElementById(type === 'input' ? 'in_cols' : 'kr_cols').value);
+            let matrix = [];
+            for (let r = 0; r < rows; r++) {
+                let rowValues = [];
+                for (let c = 0; c < cols; c++) {
+                    const val = parseFloat(document.getElementById(`cell_${type}_${r}_${c}`).value);
+                    if (isNaN(val)) throw new Error(`Sel matriks ${type} pada baris ${r+1}, kolom ${c+1} kosong.`);
+                    rowValues.push(val);
+                }
+                matrix.push(rowValues);
+            }
+            return matrix;
+        }
+    }
+
+    class ConvolutionCalculator {
+        static calculate(input, kernel) {
+            const inRows = input.length, inCols = input[0].length;
+            const kRows = kernel.length, kCols = kernel[0].length;
+
+            if (kRows > inRows || kCols > inCols) throw new Error("Kernel tidak boleh lebih besar dari Input.");
+
+            const outRows = inRows - kRows + 1, outCols = inCols - kCols + 1;
+            let outputMatrix = [], stepsLog = [];
+
+            for (let r = 0; r < outRows; r++) {
+                let outRowValues = [];
+                for (let c = 0; c < outCols; c++) {
+                    let sum = 0, formulaPairs = [], additions = []; 
+
+                    for (let i = 0; i < kRows; i++) {
+                        for (let j = 0; j < kCols; j++) {
+                            let inVal = input[r + i][c + j];
+                            let kVal = kernel[i][j];
+                            let product = inVal * kVal;
+                            
+                            sum += product;
+                            formulaPairs.push(`(${inVal} &times; ${kVal})`);
+                            additions.push(product >= 0 && additions.length > 0 ? `+ ${product}` : `${product}`);
+                        }
+                    }
+
+                    outRowValues.push(sum);
+                    stepsLog.push({
+                        offsetR: r, offsetC: c, posRow: r + 1, posCol: c + 1,
+                        formula: `= ${formulaPairs.join(" + ")}`,
+                        calculation: `= ${additions.join(" ").replace(/\+ -/g, "- ")} = <strong class="text-blue-700">${sum}</strong>`
+                    });
+                }
+                outputMatrix.push(outRowValues);
+            }
+            return { outputMatrix, stepsLog, input, kRows, kCols };
+        }
+    }
+
+    window.onload = () => {
+        MatrixUI.buildGrid('input');
+        MatrixUI.buildGrid('kernel');
+    };
+
+    function jalankanKalkulasi2D() {
+        const resultSection = document.getElementById('result_section');
+        const stepsContainer = document.getElementById('steps_log_container');
+        const finalRender = document.getElementById('final_matrix_render');
+
+        resultSection.classList.add('hidden');
+        stepsContainer.innerHTML = ''; finalRender.innerHTML = '';
+
+        try {
+            const inputMat = MatrixUI.getMatrixValues('input');
+            const kernelMat = MatrixUI.getMatrixValues('kernel');
+            const result = ConvolutionCalculator.calculate(inputMat, kernelMat);
+            const inRows = inputMat.length, inCols = inputMat[0].length;
+
+            // Render Langkah
+            result.stepsLog.forEach((step, index) => {
+                let titleStr = `Posisi (${step.posRow},${step.posCol})`;
+                if(step.posRow === 1 && step.posCol === 1) titleStr += " — Submatriks Kiri Atas:";
+                else if (step.posRow === 1) titleStr += ` — Geser Kanan ${step.posCol - 1}:`;
+                else titleStr += ` — Geser Bawah ${step.posRow - 1}, Kanan ${step.posCol - 1}:`;
+
+                let visualGridHTML = `<div class="inline-grid gap-[2px] bg-slate-300 border-2 border-slate-300 rounded overflow-hidden p-[2px]" style="grid-template-columns: repeat(${inCols}, minmax(0, 1fr))">`;
+                for(let r = 0; r < inRows; r++) {
+                    for(let c = 0; c < inCols; c++) {
+                        let isActive = (r >= step.offsetR && r < step.offsetR + result.kRows) && 
+                                       (c >= step.offsetC && c < step.offsetC + result.kCols);
+                        
+                        let baseClass = "w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-sm sm:text-base rounded-sm transition-all duration-300";
+                        let cellClass = isActive ? `${baseClass} bg-white anim-pulse-border` : `${baseClass} bg-white text-slate-400 opacity-60`;
+                        visualGridHTML += `<div class="${cellClass}">${inputMat[r][c]}</div>`;
+                    }
+                }
+                visualGridHTML += `</div>`;
+
+                // Arsitektur Tailwind untuk Layout Kiri-Kanan & Solusi OVERFLOW
+                const stepDiv = document.createElement('div');
+                stepDiv.className = 'bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-slate-200 anim-fade-in';
+                stepDiv.style.animationDelay = `${(index + 1) * 0.15}s`; 
+                
+                stepDiv.innerHTML = `
+                    <div class="font-bold text-blue-600 mb-4 text-base md:text-lg border-b border-dashed border-slate-200 pb-2">${titleStr}</div>
+                    
+                    <div class="flex flex-col lg:flex-row gap-6">
+                        <!-- Area Kiri: Visual Matrix -->
+                        <div class="shrink-0 bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col items-center justify-center">
+                            <div class="text-xs md:text-sm text-slate-500 mb-3 font-semibold uppercase tracking-wider">Area Tumpang Tindih</div>
+                            ${visualGridHTML}
+                        </div>
+                        
+                        <!-- Area Kanan: Rumus Matematika (Dengan min-w-0 dan overflow-x-auto untuk mengatasi luapan teks) -->
+                        <div class="flex-1 min-w-0 bg-slate-100 p-4 md:p-6 rounded-xl border-l-4 border-blue-500 flex flex-col justify-center overflow-x-auto custom-scrollbar">
+                            <div class="font-serif text-base md:text-lg text-slate-700 whitespace-nowrap min-w-max">
+                                <div class="mb-3">${step.formula}</div>
+                                <div>${step.calculation}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                stepsContainer.appendChild(stepDiv);
+            });
+
+            // Render Hasil Akhir
+            finalRender.style.gridTemplateColumns = `repeat(${result.outputMatrix[0].length}, minmax(0, 1fr))`;
+            result.outputMatrix.forEach(row => {
+                row.forEach(val => {
+                    const cell = document.createElement('div');
+                    cell.className = 'w-14 h-14 md:w-16 md:h-16 bg-white flex items-center justify-center font-bold text-lg md:text-xl text-blue-600';
+                    cell.innerText = val;
+                    finalRender.appendChild(cell);
+                });
+            });
+
+            resultSection.classList.remove('hidden');
+
+        } catch (error) {
+            alert("Terjadi Kesalahan: " + error.message);
+        }
+    }
+</script>
+
+</body>
+</html>
